@@ -63,10 +63,11 @@ static unsigned char utf16le[] = {
 
 int main(int argc, char *argv[])
 {
+    tiny_hex_dump(0, utf16be, sizeof(utf16be));
     printf("FROM UTF16BE to UTF8:\n================================\n");
-    printf("%s\n", utf_as_utf8(utf16be, sizeof(utf16be), UTF_CODING_UTF16BE));
+    printf("%s\n", tiny_utf_to_utf8(utf16be, sizeof(utf16be), UTF_CODING_UTF16BE));
     printf("FROM UTF16LE to UTF8:\n================================\n");
-    printf("%s\n", utf_as_utf8(utf16le, sizeof(utf16le), UTF_CODING_UTF16LE));
+    printf("%s\n", tiny_utf_to_utf8(utf16le, sizeof(utf16le), UTF_CODING_UTF16LE));
 
     return 0;
 }

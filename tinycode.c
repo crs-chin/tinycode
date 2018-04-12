@@ -25,10 +25,6 @@
 
 #include "tinycode.h"
 
-#define ARRAYSIZE(a)  (sizeof(a)/sizeof(a[0]))
-
-#define BUILD_FAIL_IF(exp) ((void)sizeof(char[1 - 2 * (!!(exp))]))
-
 typedef struct _utf_coding utf_coding;
 typedef int (*utf_encode)(void **buf, size_t *size, unsigned int code_point);
 typedef int (*utf_decode)(void **buf, size_t *size, unsigned int *code_point);
@@ -89,7 +85,7 @@ static const char *mon_tbl[] = {
 };
 
 
-int dehex(char c)
+int tiny_decode_hex(char c)
 {
     if(c >= '0' && c <= '9')
         return c - '0';
@@ -100,7 +96,7 @@ int dehex(char c)
     return -1;
 }
 
-char *dehex_string(const char *str, int *len)
+char *tiny_decode_hex_string(const char *str, int *len)
 {
     const char *p;
     char *bin, *q;
@@ -119,7 +115,7 @@ char *dehex_string(const char *str, int *len)
         return NULL;
 
     for(p = str, q = bin; l; l--)  {
-        *q++ = ((dehex(*p) << 4) | dehex(*(p + 1)));
+        *q++ = ((tiny_decode_hex(*p) << 4) | tiny_decode_hex(*(p + 1)));
         p += 2;
     }
 
@@ -127,16 +123,16 @@ char *dehex_string(const char *str, int *len)
 }
 
 
-void hex_dump(int tabs, char *_val, int len)
+void tiny_hex_dump(int tabs, const char *val, int len)
 {
-    unsigned char *val = _val;
+    const unsigned char *p = (const unsigned char *)val;
     int i, j;
 
     for(i = 0; i < len;)  {
         if(! (i % 16))  {
             for(j = 0; j < tabs; j++)
                 printf("\t");
-            printf("%-.02X~%.02X  ", i, i + 15);
+            printf("%-.04X-%.04X    ", i, i + 15);
         }
 
         if(! (i % 8) && (i % 16))
@@ -144,16 +140,16 @@ void hex_dump(int tabs, char *_val, int len)
 
         switch(len - i)  {
         default:
-            printf("%02X %02X %02X %02X ", val[i], val[i + 1], val[i + 2], val[i + 3]);
+            printf("%02X %02X %02X %02X ", p[i], p[i + 1], p[i + 2], p[i + 3]);
             i += 4;
             break;
         case 2:
         case 3:
-            printf("%02X %02X ", val[i], val[i + 1]);
+            printf("%02X %02X ", p[i], p[i + 1]);
             i += 2;
             break;
         case 1:
-            printf("%02X", val[i]);
+            printf("%02X", p[i]);
             i += 1;
             break;
         }
@@ -409,7 +405,7 @@ static unsigned short __read_le(void *buf)
 static int utf_decode_16(unsigned short (*read_short)(void *),
                          void **buf, size_t *size, unsigned int *cp)
 {
-    unsigned short _cp, surr_high, surr_low;
+    unsigned short _cp;
     size_t sz = 0;
     int err = UTF_ERR_OK;
 
@@ -500,8 +496,8 @@ static const utf_coding *utf_coding_get(int coding, const char *name)
     return NULL;
 }
 
-int utf_convert(int from, void **in, size_t *in_sz,
-                int to, void **out, size_t *out_sz)
+int tiny_utf_convert(int from, void **in, size_t *in_sz,
+                     int to, void **out, size_t *out_sz)
 {
     const utf_coding *fcoding = utf_coding_get(from, NULL);
     const utf_coding *tcoding = utf_coding_get(to, NULL);
@@ -512,8 +508,8 @@ int utf_convert(int from, void **in, size_t *in_sz,
     return utf_do_convert(fcoding, in, in_sz, tcoding, out, out_sz);
 }
 
-int utf_convert_name(const char *from, void **in, size_t *in_sz,
-                     const char *to, void **out, size_t *out_sz)
+int tiny_utf_convert_name(const char *from, void **in, size_t *in_sz,
+                          const char *to, void **out, size_t *out_sz)
 {
     const utf_coding *fcoding = utf_coding_get(UTF_CODING_INVALID, from);
     const utf_coding *tcoding = utf_coding_get(UTF_CODING_INVALID, to);
@@ -524,9 +520,10 @@ int utf_convert_name(const char *from, void **in, size_t *in_sz,
     return utf_do_convert(fcoding, in, in_sz, tcoding, out, out_sz);
 }
 
-char *utf_as_utf8(char *text, int len, int coding)
+char *tiny_utf_to_utf8(const char *text, int len, int coding)
 {
-    char *inbuf, *outbuf, *str;
+    const char *inbuf;
+    char *outbuf, *str;
     size_t in, sz, out, res;
 
     if(len < 0)
@@ -540,7 +537,8 @@ char *utf_as_utf8(char *text, int len, int coding)
         return NULL;
 
     for(inbuf = text, outbuf = str;;)  {
-        res = utf_convert(coding, (void **)&inbuf, &in, UTF_CODING_UTF8, (void **)&outbuf, &out);
+        res = tiny_utf_convert(coding, (void **)&inbuf, &in,
+                               UTF_CODING_UTF8, (void **)&outbuf, &out);
         if(res == UTF_ERR_SIZE)  {
             out += len;
             sz += len;
@@ -559,19 +557,19 @@ char *utf_as_utf8(char *text, int len, int coding)
     return str;
 }
 
-char *decode_ucs16be(unsigned char *txt, int len)
+char *tiny_decode_ucs16be(const unsigned char *txt, int len)
 {
-    unsigned short *ucs16 = (unsigned short *)txt;
+    const unsigned short *ucs16 = (const unsigned short *)txt;
 
     /* skipping ending 0xFFFF */
     for(len /= 2; len >= 1 && ucs16[len - 1] == 0xFFFF; len--);
     if(! len)
         return strdup("");
-    return utf_as_utf8((char *)ucs16, len * 2, UTF_CODING_UTF16BE);
+    return tiny_utf_to_utf8((const char *)ucs16, len * 2, UTF_CODING_UTF16BE);
 }
 
 
-char *decode_unicode(unsigned char *pdu, int len, int bitoffset)
+char *tiny_decode_unicode(const unsigned char *pdu, int len, int bitoffset)
 {
     unsigned short *ucs16, *p;
     unsigned int i, j, c, charoffset, shift;
@@ -590,16 +588,16 @@ char *decode_unicode(unsigned char *pdu, int len, int bitoffset)
 
             p[i++] = c;
         }
-        txt = utf_as_utf8((char *)ucs16, len * 2, UTF_CODING_UTF16);
+        txt = tiny_utf_to_utf8((const char *)ucs16, len * 2, UTF_CODING_UTF16);
         free(ucs16);
     }
     return txt;
 }
 
 
-char *decode_asc7bit_packed(unsigned char *pdu, int septets, int bitoffset)
+char *tiny_decode_asc7bit_packed(const unsigned char *pdu, int septets, int bitoffset)
 {
-    unsigned char *str;
+    char *str;
     unsigned int i, c, charoffset, shift;
 
     str = (char *)malloc(septets + 1);
@@ -630,7 +628,7 @@ char *decode_asc7bit_packed(unsigned char *pdu, int septets, int bitoffset)
 }
 
 
-char *decode_asc7bit_unpacked(unsigned char *pdu, int septets, int bitoffset)
+char *tiny_decode_asc7bit_unpacked(const unsigned char *pdu, int septets, int bitoffset)
 {
     unsigned char *buf, *p;
     unsigned int i, v, charoffset = bitoffset / 8, shift = bitoffset % 8;
@@ -652,7 +650,7 @@ char *decode_asc7bit_unpacked(unsigned char *pdu, int septets, int bitoffset)
 }
 
 
-char *decode_ip_addr(unsigned char *pdu, int bitoffset)
+char *tiny_decode_ip_addr(const unsigned char *pdu, int bitoffset)
 {
     unsigned int v, charoffset = bitoffset / 8, shift = bitoffset % 8;
     unsigned char *buf = NULL, *p = (unsigned char *)&v;
@@ -676,7 +674,7 @@ char *decode_ip_addr(unsigned char *pdu, int bitoffset)
     return buf;
 }
 
-char *decode_gsm7bit_packed(unsigned char *pdu, int septets, int padingbits)
+char *tiny_decode_gsm7bit_packed(const unsigned char *pdu, int septets, int padingbits)
 {
     char *str, *p;
     int esc = 0, c, bitoffset, charoffset, shift;
@@ -732,7 +730,7 @@ char *decode_gsm7bit_packed(unsigned char *pdu, int septets, int padingbits)
     return str;    
 }
 
-char *decode_gsm8bit_unpacked(unsigned char *pdu, int len)
+char *tiny_decode_gsm8bit_unpacked(const unsigned char *pdu, int len)
 {
     char *str, *p;
     int esc, c, i, j, sz = len;
@@ -781,7 +779,7 @@ char *decode_gsm8bit_unpacked(unsigned char *pdu, int len)
     return str;
 }
 
-char *decode_ucs2(char *pdu, char base, int len)
+char *tiny_decode_ucs2(const char *pdu, char base, int len)
 {
     char *ret, *tmp;
     size_t sz = len;
@@ -809,7 +807,7 @@ char *decode_ucs2(char *pdu, char base, int len)
         for(m = i; m < len && pdu[m] >= 0; m++)
             ;
 
-        tmp = decode_gsm8bit_unpacked(pdu + i, m - i);
+        tmp = tiny_decode_gsm8bit_unpacked(pdu + i, m - i);
         if(tmp)  {
             int l = strlen(tmp);
 
@@ -832,7 +830,7 @@ char *decode_ucs2(char *pdu, char base, int len)
     return ret;
 }
 
-char *decode_adn(unsigned char *pdu, int len)
+char *tiny_decode_adn(const unsigned char *pdu, int len)
 {
     int i = 0, l = 0, ucs2 = 0;
     char base = '\0';
@@ -841,7 +839,7 @@ char *decode_adn(unsigned char *pdu, int len)
         return strdup("");
 
     if(len >= 1 && pdu[i] == 0x80)
-        return decode_ucs16be(pdu + 1, len - 1);
+        return tiny_decode_ucs16be(pdu + 1, len - 1);
 
     if(len >= 3 && pdu[i] == 0x81)  {
         l = pdu[i + 1] & 0xff;
@@ -860,12 +858,12 @@ char *decode_adn(unsigned char *pdu, int len)
     }
 
     if(ucs2)
-        return decode_ucs2(pdu + i, base, len - i);
+        return tiny_decode_ucs2(pdu + i, base, len - i);
 
-    return decode_gsm8bit_unpacked(pdu, len);
+    return tiny_decode_gsm8bit_unpacked(pdu, len);
 }
 
-int decode_bcd(unsigned char pdu)
+int tiny_decode_bcd(unsigned char pdu)
 {
     int ret = 0;
 
@@ -878,7 +876,7 @@ int decode_bcd(unsigned char pdu)
 }
 
 
-int decode_bcd_cdma(unsigned char pdu)
+int tiny_decode_bcd_cdma(unsigned char pdu)
 {
     int ret = 0;
 
@@ -892,7 +890,7 @@ int decode_bcd_cdma(unsigned char pdu)
 
 
 /* FIXME:modify num according num type */
-unsigned char *decode_bcd_num(unsigned char *pdu, int sz)
+unsigned char *tiny_decode_bcd_num(const unsigned char *pdu, int sz)
 {
     unsigned char *num = (char *)malloc(sz + 1), idx;
     int  i;
@@ -919,16 +917,17 @@ unsigned char *decode_bcd_num(unsigned char *pdu, int sz)
 }
 
 
-unsigned char *decode_bcd_num_cdma(unsigned char *pdu, int sz, int bitoffset)
+unsigned char *tiny_decode_bcd_num_cdma(const unsigned char *pdu, int sz, int bitoffset)
 {
-    unsigned char *buf, *p, *num;
+    const unsigned char *buf;
+    unsigned char *p, *num;
     unsigned int i, v, len, charoffset = bitoffset / 8, shift = bitoffset % 8;
 
     if(! shift)  {
         buf = pdu + charoffset;
     }else  {
-        buf = (unsigned char *)alloca((sz + 1) / 2);
-        for(i = 0, p = buf, len = (sz + 1) / 2; i < len; i++, charoffset++)  {
+        buf = p = (unsigned char *)alloca((sz + 1) / 2);
+        for(i = 0, len = (sz + 1) / 2; i < len; i++, charoffset++)  {
             v = pdu[charoffset] & ((1 << (8 - shift)) - 1);
             v = ((v << shift) | ((pdu[charoffset + 1] >> (8 - shift)) & ((1 << shift) - 1)));
             *p++ = v;
@@ -954,7 +953,7 @@ unsigned char *decode_bcd_num_cdma(unsigned char *pdu, int sz, int bitoffset)
 }
 
 
-static void __build_check(void)
+static __attribute__((unused)) void __build_check(void)
 {
     BUILD_FAIL_IF(128 != ARRAYSIZE(gsm_alphabet));
 }

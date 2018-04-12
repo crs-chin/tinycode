@@ -40,37 +40,48 @@
 #define UTF_ERR_SIZE        (-4)
 #define UTF_ERR_NO_SUPPORT  (-5)
 
+
+#ifndef ARRAYSIZE
+ #define ARRAYSIZE(a)  (sizeof(a)/sizeof(a[0]))
+#endif
+
+#ifndef BUILD_FAIL_IF
+ #define BUILD_FAIL_IF(exp) ((void)sizeof(char[1 - 2 * (!!(exp))]))
+#endif
+
+
 /* basic */
-extern int dehex(char c);
-extern char *dehex_string(const char *str, int *len);
-extern void hex_dump(int tabs, char *_val, int len);
+extern int tiny_decode_hex(char c);
+extern char *tiny_decode_hex_string(const char *str, int *len);
+extern char *tiny_encode_hex_string(const char *str, int len);
+extern void tiny_hex_dump(int tabs, const char *val, int len);
 
 /* UTF handling */
-extern int utf_convert(int from, void **in, size_t *in_sz,
-                       int to, void **out, size_t *out_sz);
-extern int utf_convert_name(const char *from, void **in, size_t *in_sz,
-                            const char *to, void **out, size_t *out_sz);
-extern char *utf_as_utf8(char *text, int len, int coding);
+extern int tiny_utf_convert(int from, void **in, size_t *in_sz,
+                            int to, void **out, size_t *out_sz);
+extern int tiny_utf_convert_name(const char *from, void **in, size_t *in_sz,
+                                 const char *to, void **out, size_t *out_sz);
+extern char *tiny_utf_to_utf8(const char *text, int len, int coding);
 
 /* GSM/CDMA coding handling */
-extern char *decode_ucs16be(unsigned char *txt, int len);
-extern char *decode_unicode(unsigned char *pdu, int len, int bitoffset);
+extern char *tiny_decode_ucs16be(const unsigned char *txt, int len);
+extern char *tiny_decode_unicode(const unsigned char *pdu, int len, int bitoffset);
 
-extern char *decode_asc7bit_packed(unsigned char *pdu, int septets, int bitoffset);
-extern char *decode_asc7bit_unpacked(unsigned char *pdu, int septets, int bitoffset);
+extern char *tiny_decode_asc7bit_packed(const unsigned char *pdu, int septets, int bitoffset);
+extern char *tiny_decode_asc7bit_unpacked(const unsigned char *pdu, int septets, int bitoffset);
 
-extern char *decode_ip_addr(unsigned char *pdu, int bitoffset);
+extern char *tiny_decode_ip_addr(const unsigned char *pdu, int bitoffset);
 
-extern char *decode_gsm7bit_packed(unsigned char *pdu, int septets, int padingbits);
-extern char *decode_gsm8bit_unpacked(unsigned char *pdu, int len);
+extern char *tiny_decode_gsm7bit_packed(const unsigned char *pdu, int septets, int padingbits);
+extern char *tiny_decode_gsm8bit_unpacked(const unsigned char *pdu, int len);
 
-extern char *decode_ucs2(char *pdu, char base, int len);
-extern char *decode_adn(unsigned char *pdu, int len);
+extern char *tiny_decode_ucs2(const char *pdu, char base, int len);
+extern char *tiny_decode_adn(const unsigned char *pdu, int len);
 
-extern int decode_bcd(unsigned char pdu);
-extern int decode_bcd_cdma(unsigned char pdu);
+extern int tiny_decode_bcd(unsigned char pdu);
+extern int tiny_decode_bcd_cdma(unsigned char pdu);
 
-extern unsigned char *decode_bcd_num(unsigned char *pdu, int sz);
-extern unsigned char *decode_bcd_num_cdma(unsigned char *pdu, int sz, int bitoffset);
+extern unsigned char *tiny_decode_bcd_num(const unsigned char *pdu, int sz);
+extern unsigned char *tiny_decode_bcd_num_cdma(const unsigned char *pdu, int sz, int bitoffset);
 
 #endif  /* ! __TINYCODE_H */
