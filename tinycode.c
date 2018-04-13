@@ -952,6 +952,60 @@ unsigned char *tiny_decode_bcd_num_cdma(const unsigned char *pdu, int sz, int bi
     return num;
 }
 
+char *tiny_string_trim(char *string, const char *junk, int flag)
+{
+    const char *_junk = " \f\t\n\r\v";
+    char *s = string, *p = string, *_e, *e;
+
+    if(! string || ! string[0])
+        return s;
+
+    if(! junk && ! junk[0])
+        _junk = junk;
+
+    while(*p && strchr(_junk, *p))
+        p++;
+
+    flag &= STRING_TRIM_ALL;
+
+    if(flag & STRING_TRIM_FRONT) {
+        flag &= ~STRING_TRIM_FRONT;
+        if(*p && s != p)
+            *s++ = *p++;
+    }
+
+    for(e = NULL, _e = p; *_e; _e++) {
+        if(! strchr(_junk, *_e))
+            e = _e;
+    }
+
+    if(flag & STRING_TRIM_MIDDLE) {
+
+
+
+    } else if(s != p) {
+        while(*p && p != e)
+            *s++ = *p++;
+    }
+
+    if(flag & STRING_TRIM_END) {
+
+
+    } else {
+
+    }
+}
+
+char **tiny_string_list_split(const char *list, const char *delim, int *num)
+{
+    const char *_delim = ",";
+
+    if(! list || ! list[0])
+        return NULL;
+}
+
+int tiny_string_list_insert(char *list, const char *delim, int size, const char *item);
+int tiny_string_list_remove(char *list, const char *delim, const char *item);
 
 static __attribute__((unused)) void __build_check(void)
 {
