@@ -672,9 +672,9 @@ char *tiny_decode_ip_addr(const unsigned char *pdu, int bitoffset)
         v = (v << shift) | ((pdu[charoffset] >> (8 - shift)) & ((1 << shift) - 1));
 
     if(__big_endian())
-        asprintf(&buf, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
+        asprintf((char **)&buf, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
     else
-        asprintf(&buf, "%d.%d.%d.%d", p[3], p[2], p[1], p[0]);
+        asprintf((char **)&buf, "%d.%d.%d.%d", p[3], p[2], p[1], p[0]);
 
     return buf;
 }
@@ -960,7 +960,7 @@ unsigned char *tiny_decode_bcd_num_cdma(const unsigned char *pdu, int sz, int bi
 char *tiny_string_trim(char *string, const char *junk, int flag)
 {
     const char *_junk = " \f\t\n\r\v";
-    char *s, *p, *_e, *e;
+    char *s = string, *p = string, *_e, *e;
 
     if(! string || ! string[0])
         return s;
