@@ -21,7 +21,6 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 
 #include "tinycode.h"
 
@@ -225,28 +224,34 @@ static int utf_encode_8(void **buf, size_t *size, unsigned int cp)
     return err;
 }
 
+static inline int __big_endian()
+{
+    int i = 1;
+    return ! *(char *)&i;
+}
+
 static void __write_be(void *buf, unsigned short val)
 {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    *(unsigned short *)buf = val;
-#else
-    unsigned char *a = (unsigned char *)buf;
+    if(__big_endian()) {
+        *(unsigned short *)buf = val;
+    } else {
+        unsigned char *a = (unsigned char *)buf;
 
-    *a = val >> 8;
-    *(a + 1) = val & 0x0F;
-#endif
+        *a = val >> 8;
+        *(a + 1) = val & 0x0F;
+    }
 }
 
 static void __write_le(void *buf, unsigned short val)
 {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    unsigned char *a = buf;
+    if(__big_endian()) {
+        unsigned char *a = buf;
 
-    *a = val & 0x0F;
-    *(a + 1) = val >> 8;
-#else
-    *(unsigned short *)buf = val;
-#endif
+        *a = val & 0x0F;
+        *(a + 1) = val >> 8;
+    } else {
+        *(unsigned short *)buf = val;
+    }
 }
 
 static int utf_encode_16(void (*write_short)(void *, unsigned short),
@@ -382,24 +387,23 @@ static int utf_decode_8(void **buf, size_t *size, unsigned int *cp)
 
 static unsigned short __read_be(void *buf)
 {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    return *(unsigned short *)buf;
-#else
+    if(__big_endian())
+        return *(unsigned short *)buf;
+
     unsigned char *a = buf;
 
     return (*a << 8 | *(a + 1));
-#endif
 }
 
 static unsigned short __read_le(void *buf)
 {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    unsigned char *a = buf;
+    if(__big_endian()) {
+        unsigned char *a = buf;
 
-    return (*a | *(a + 1) << 8);
-#else
+        return (*a | *(a + 1) << 8);
+    }
+
     return *(unsigned short *)buf;
-#endif
 }
 
 static int utf_decode_16(unsigned short (*read_short)(void *),
