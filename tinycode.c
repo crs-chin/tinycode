@@ -18,6 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -670,11 +671,11 @@ char *tiny_decode_ip_addr(const unsigned char *pdu, int bitoffset)
     else
         v = (v << shift) | ((pdu[charoffset] >> (8 - shift)) & ((1 << shift) - 1));
 
-#if __BYTE_ORDER == __BIG_ENDIAN
-    asprintf(&buf, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
-#else
-    asprintf(&buf, "%d.%d.%d.%d", p[3], p[2], p[1], p[0]);
-#endif
+    if(__big_endian())
+        asprintf(&buf, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
+    else
+        asprintf(&buf, "%d.%d.%d.%d", p[3], p[2], p[1], p[0]);
+
     return buf;
 }
 
@@ -959,45 +960,55 @@ unsigned char *tiny_decode_bcd_num_cdma(const unsigned char *pdu, int sz, int bi
 char *tiny_string_trim(char *string, const char *junk, int flag)
 {
     const char *_junk = " \f\t\n\r\v";
-    char *s = string, *p = string, *_e, *e;
+    char *s, *p, *_e, *e;
 
     if(! string || ! string[0])
         return s;
 
-    if(! junk && ! junk[0])
-        _junk = junk;
+    if(! junk || ! junk[0])
+        junk = _junk;
 
-    while(*p && strchr(_junk, *p))
+    if(! (flag & STRING_TRIM_IN_PLACE))
+        string = strdup(string);
+
+    s = p = string;
+
+    if(! string || ! (flag & STRING_TRIM_ALL))
+        return string;
+
+    while(*p && strchr(junk, *p))
         p++;
 
-    flag &= STRING_TRIM_ALL;
-
-    if(flag & STRING_TRIM_FRONT) {
-        flag &= ~STRING_TRIM_FRONT;
-        if(*p && s != p)
-            *s++ = *p++;
+    if(! (flag & STRING_TRIM_FRONT)) {
+        s = p;
     }
 
-    for(e = NULL, _e = p; *_e; _e++) {
-        if(! strchr(_junk, *_e))
+    /* last non-junk char */
+    for(e = _e = p; *_e; _e++) {
+        if(! strchr(junk, *_e))
             e = _e;
     }
 
     if(flag & STRING_TRIM_MIDDLE) {
-
-
-
-    } else if(s != p) {
-        while(*p && p != e)
+        while(*p && p <= e) {
+            if(! strchr(junk, *p)) {
+                *s++ = *p++;
+                continue;
+            }
+            p++;
+        }
+    } else {
+        while(*p && p <= e)
             *s++ = *p++;
     }
 
-    if(flag & STRING_TRIM_END) {
-
-
-    } else {
-
+    if(! (flag & STRING_TRIM_END)) {
+        while(*p)
+            *s++ = *p++;
     }
+    *s = '\0';
+
+    return string;
 }
 
 char **tiny_string_list_split(const char *list, const char *delim, int *num)
@@ -1006,10 +1017,23 @@ char **tiny_string_list_split(const char *list, const char *delim, int *num)
 
     if(! list || ! list[0])
         return NULL;
+    /* TODO: */
 }
 
-int tiny_string_list_insert(char *list, const char *delim, int size, const char *item);
-int tiny_string_list_remove(char *list, const char *delim, const char *item);
+int tiny_string_list_insert(char *list, const char *delim, int size, const char *item)
+{
+
+}
+
+int tiny_string_list_remove(char *list, const char *delim, const char *item)
+{
+
+}
+
+char *tiny_string_list_find(char *list, const char *delim, const char *item)
+{
+
+}
 
 static __attribute__((unused)) void __build_check(void)
 {

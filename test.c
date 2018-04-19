@@ -19,6 +19,8 @@
  */
 
 #include <stdio.h>
+#include <string.h>
+
 #include "tinycode.h"
 
 static unsigned char utf16be[] = {
@@ -64,12 +66,64 @@ static unsigned char utf16le[] = {
 int main(int argc, char *argv[])
 {
     static const char space[] = " \f\t\n\r\v";
+    char a[] = "   Hello Wor ld  ";
+    char b[] = "Hello Wor ld  ";
+    char c[] = "  Hello Wor ld";
+    char d[] = "  HelloWorld  ";
+    char e[] = "HelloWorld  ";
+    char f[] = "HelloWorld";
+    char g[] = "  ";
 
     tiny_hex_dump(0, space, strlen(space));
     printf("FROM UTF16BE to UTF8:\n================================\n");
     printf("%s\n", tiny_utf_to_utf8(utf16be, sizeof(utf16be), UTF_CODING_UTF16BE));
     printf("FROM UTF16LE to UTF8:\n================================\n");
     printf("%s\n", tiny_utf_to_utf8(utf16le, sizeof(utf16le), UTF_CODING_UTF16LE));
+
+    printf("trim NONE:\n ==============================================\n");
+    printf("\"%s\"\n", tiny_string_trim(a, NULL, 0));
+    printf("\"%s\"\n", tiny_string_trim(b, NULL, 0));
+    printf("\"%s\"\n", tiny_string_trim(c, NULL, 0));
+    printf("\"%s\"\n", tiny_string_trim(d, NULL, 0));
+    printf("\"%s\"\n", tiny_string_trim(e, NULL, 0));
+    printf("\"%s\"\n", tiny_string_trim(f, NULL, 0));
+    printf("\"%s\"\n", tiny_string_trim(g, NULL, 0));
+
+    printf("trim ALL:\n ==============================================\n");
+    printf("\"%s\"\n", tiny_string_trim(a, NULL, STRING_TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(b, NULL, STRING_TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(c, NULL, STRING_TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(d, NULL, STRING_TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(e, NULL, STRING_TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(f, NULL, STRING_TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(g, NULL, STRING_TRIM_ALL));
+
+    printf("trim FRONT and END:\n ==============================================\n");
+    printf("\"%s\"\n", tiny_string_trim(a, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(b, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(c, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(d, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(e, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(f, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(g, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
+
+    printf("trim MIDDLE:\n ==============================================\n");
+    printf("\"%s\"\n", tiny_string_trim(a, NULL, STRING_TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(b, NULL, STRING_TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(c, NULL, STRING_TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(d, NULL, STRING_TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(e, NULL, STRING_TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(f, NULL, STRING_TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(g, NULL, STRING_TRIM_MIDDLE));
+
+    printf("trim END:\n ==============================================\n");
+    printf("\"%s\"\n", tiny_string_trim(a, NULL, STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(b, NULL, STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(c, NULL, STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(d, NULL, STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(e, NULL, STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(f, NULL, STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(g, NULL, STRING_TRIM_END));
 
     return 0;
 }
