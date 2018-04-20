@@ -968,18 +968,18 @@ char *tiny_string_trim(char *string, const char *junk, int flag)
     if(! junk || ! junk[0])
         junk = _junk;
 
-    if(! (flag & STRING_TRIM_IN_PLACE))
+    if(! (flag & TRIM_IN_PLACE))
         string = strdup(string);
 
     s = p = string;
 
-    if(! string || ! (flag & STRING_TRIM_ALL))
+    if(! string || ! (flag & TRIM_ALL))
         return string;
 
     while(*p && strchr(junk, *p))
         p++;
 
-    if(! (flag & STRING_TRIM_FRONT)) {
+    if(! (flag & TRIM_FRONT)) {
         s = p;
     }
 
@@ -989,7 +989,7 @@ char *tiny_string_trim(char *string, const char *junk, int flag)
             e = _e;
     }
 
-    if(flag & STRING_TRIM_MIDDLE) {
+    if(flag & TRIM_MIDDLE) {
         while(*p && p <= e) {
             if(! strchr(junk, *p)) {
                 *s++ = *p++;
@@ -1002,7 +1002,7 @@ char *tiny_string_trim(char *string, const char *junk, int flag)
             *s++ = *p++;
     }
 
-    if(! (flag & STRING_TRIM_END)) {
+    if(! (flag & TRIM_END)) {
         while(*p)
             *s++ = *p++;
     }
@@ -1013,26 +1013,146 @@ char *tiny_string_trim(char *string, const char *junk, int flag)
 
 char **tiny_string_list_split(const char *list, const char *delim, int *num)
 {
-    const char *_delim = ",";
+    const char *_delim = ",", *p, *_p;
+    char **array, **item, *content;
+    unsigned int l, len;
+    int cnt;
 
     if(! list || ! list[0])
         return NULL;
-    /* TODO: */
+
+    if(! delim || ! delim[0])
+        delim = _delim;
+
+    for(cnt = 0, p = _p = list, len = strlen(delim); _p && *p; p = _p + len) {
+        if(p != (_p = strstr(p, delim)))
+            cnt++;
+    }
+
+    /* reside in a single block with last NULL item */
+    if(! (array = (char **)malloc(strlen(list) + sizeof(char *) * (cnt + 1))))
+        return NULL;
+
+    item = array;
+    content = (char *)(array + cnt + 1);
+    for(p = _p = list; _p && *p; p = _p + len) {
+        if(p != (_p = strstr(p, delim))) {
+            if(_p) {
+                l = _p - p;
+                *item++ = strncpy(content, p, l);
+                content += l;
+                *content++ = '\0';
+            } else {
+                *item++ = strcpy(content, p);
+            }
+        }
+    }
+
+    *item = NULL;
+    if(num)
+        *num = cnt;
+
+    return array;
 }
 
-int tiny_string_list_insert(char *list, const char *delim, int size, const char *item)
+/*
+ * @size: list capacity, including terminating '\0'
+ */
+int tiny_string_list_insert(char *list, const char *delim, unsigned int size, const char *item)
 {
+    const char *_delim = ",", *p, *_p;
+    unsigned int dlen, len;
 
+    if(! list || ! item || ! item[0])
+        return -1;
+
+    if(! delim || ! delim[0])
+        delim = _delim;
+
+    for(p = _p = list, dlen = strlen(delim); _p && *p; p = _p + dlen) {
+        if(p != (_p = strstr(p, delim))) {
+            if((! _p && ! strcmp(item, p)) ||
+               (_p && (_p - p) == strlen(item) && ! strncmp(item, p, _p - p)))
+                return 0;
+        }
+    }
+
+    len = strlen(list) + strlen(item) + 1;
+    /* list not ending with delim */
+    if(! _p)
+        len += dlen;
+
+    if(len > size)
+        return -1;
+
+    if(! _p)
+        strcat(list, delim);
+    strcat(list, item);
+    return 0;
 }
 
 int tiny_string_list_remove(char *list, const char *delim, const char *item)
 {
+    const char *_delim = ",";
+    unsigned int dlen, len;
+    char *p, *_p;
 
+    if(! list || ! item || ! item[0])
+        return -1;
+
+    if(! delim || ! delim[0])
+        delim = _delim;
+
+    for(p = _p = list, dlen = strlen(delim); _p && *p; p = _p + dlen) {
+        if(p != (_p = strstr(p, delim))) {
+            if(! _p && ! strcmp(item, p)) {
+                while(p > list && ! strncmp(p - dlen, delim, dlen))
+                    p -= dlen;
+
+                *p = '\0';
+                return 0;
+            }
+
+            if(_p && (_p - p) == strlen(item) && ! strncmp(item, p, _p - p)) {
+                while(! strncmp(_p, delim, dlen))
+                    _p += dlen;
+
+                /* remove heading delim if no trailing item */
+                if(! *_p) {
+                    while(p > list && ! strncmp(p - dlen, delim, dlen))
+                        p -= dlen;
+                }
+
+                while(*_p)
+                    *p++ = *_p++;
+                *p = '\0';
+                return 0;
+            }
+        }
+    }
+    return 0;
 }
 
-char *tiny_string_list_find(char *list, const char *delim, const char *item)
+int tiny_string_list_find(char *list, const char *delim, const char *item)
 {
+    const char *_delim = ",", *p, *_p;
+    unsigned int dlen, len;
 
+    if(! list || ! item || ! item[0])
+        return -1;
+
+    if(! delim || ! delim[0])
+        delim = _delim;
+
+    for(p = _p = list, dlen = strlen(delim); _p && *p; p = _p + dlen) {
+        if(p != (_p = strstr(p, delim))) {
+            if((! _p && ! strcmp(item, p)) ||
+               (_p && (_p - p) == strlen(item) && ! strncmp(item, p, _p - p)))
+                return 0;
+        }
+    }
+
+    return -1;
 }
 
 static __attribute__((unused)) void __build_check(void)

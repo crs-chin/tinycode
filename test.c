@@ -19,6 +19,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "tinycode.h"
@@ -73,6 +74,9 @@ int main(int argc, char *argv[])
     char e[] = "HelloWorld  ";
     char f[] = "HelloWorld";
     char g[] = "  ";
+    char list[50] = "1,23,4,5,6,,78,,,9,,";
+    char **array;
+    int i, cnt, res;
 
     tiny_hex_dump(0, space, strlen(space));
     printf("FROM UTF16BE to UTF8:\n================================\n");
@@ -90,40 +94,92 @@ int main(int argc, char *argv[])
     printf("\"%s\"\n", tiny_string_trim(g, NULL, 0));
 
     printf("trim ALL:\n ==============================================\n");
-    printf("\"%s\"\n", tiny_string_trim(a, NULL, STRING_TRIM_ALL));
-    printf("\"%s\"\n", tiny_string_trim(b, NULL, STRING_TRIM_ALL));
-    printf("\"%s\"\n", tiny_string_trim(c, NULL, STRING_TRIM_ALL));
-    printf("\"%s\"\n", tiny_string_trim(d, NULL, STRING_TRIM_ALL));
-    printf("\"%s\"\n", tiny_string_trim(e, NULL, STRING_TRIM_ALL));
-    printf("\"%s\"\n", tiny_string_trim(f, NULL, STRING_TRIM_ALL));
-    printf("\"%s\"\n", tiny_string_trim(g, NULL, STRING_TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(a, NULL, TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(b, NULL, TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(c, NULL, TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(d, NULL, TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(e, NULL, TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(f, NULL, TRIM_ALL));
+    printf("\"%s\"\n", tiny_string_trim(g, NULL, TRIM_ALL));
 
     printf("trim FRONT and END:\n ==============================================\n");
-    printf("\"%s\"\n", tiny_string_trim(a, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
-    printf("\"%s\"\n", tiny_string_trim(b, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
-    printf("\"%s\"\n", tiny_string_trim(c, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
-    printf("\"%s\"\n", tiny_string_trim(d, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
-    printf("\"%s\"\n", tiny_string_trim(e, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
-    printf("\"%s\"\n", tiny_string_trim(f, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
-    printf("\"%s\"\n", tiny_string_trim(g, NULL, STRING_TRIM_FRONT | STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(a, NULL, TRIM_FRONT | TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(b, NULL, TRIM_FRONT | TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(c, NULL, TRIM_FRONT | TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(d, NULL, TRIM_FRONT | TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(e, NULL, TRIM_FRONT | TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(f, NULL, TRIM_FRONT | TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(g, NULL, TRIM_FRONT | TRIM_END));
 
     printf("trim MIDDLE:\n ==============================================\n");
-    printf("\"%s\"\n", tiny_string_trim(a, NULL, STRING_TRIM_MIDDLE));
-    printf("\"%s\"\n", tiny_string_trim(b, NULL, STRING_TRIM_MIDDLE));
-    printf("\"%s\"\n", tiny_string_trim(c, NULL, STRING_TRIM_MIDDLE));
-    printf("\"%s\"\n", tiny_string_trim(d, NULL, STRING_TRIM_MIDDLE));
-    printf("\"%s\"\n", tiny_string_trim(e, NULL, STRING_TRIM_MIDDLE));
-    printf("\"%s\"\n", tiny_string_trim(f, NULL, STRING_TRIM_MIDDLE));
-    printf("\"%s\"\n", tiny_string_trim(g, NULL, STRING_TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(a, NULL, TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(b, NULL, TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(c, NULL, TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(d, NULL, TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(e, NULL, TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(f, NULL, TRIM_MIDDLE));
+    printf("\"%s\"\n", tiny_string_trim(g, NULL, TRIM_MIDDLE));
 
     printf("trim END:\n ==============================================\n");
-    printf("\"%s\"\n", tiny_string_trim(a, NULL, STRING_TRIM_END));
-    printf("\"%s\"\n", tiny_string_trim(b, NULL, STRING_TRIM_END));
-    printf("\"%s\"\n", tiny_string_trim(c, NULL, STRING_TRIM_END));
-    printf("\"%s\"\n", tiny_string_trim(d, NULL, STRING_TRIM_END));
-    printf("\"%s\"\n", tiny_string_trim(e, NULL, STRING_TRIM_END));
-    printf("\"%s\"\n", tiny_string_trim(f, NULL, STRING_TRIM_END));
-    printf("\"%s\"\n", tiny_string_trim(g, NULL, STRING_TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(a, NULL, TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(b, NULL, TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(c, NULL, TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(d, NULL, TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(e, NULL, TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(f, NULL, TRIM_END));
+    printf("\"%s\"\n", tiny_string_trim(g, NULL, TRIM_END));
+
+    printf("split:\n ==============================================\n");
+    printf("\"%s\"\n", list);
+    array = tiny_string_list_split(list, NULL, &cnt);
+    printf("splt:cnt:%d\n", cnt);
+    for(i = 0; i < cnt; i++)
+        printf("split:\"%s\"\n", array[i]);
+    free(array);
+
+    printf("insert: ===========================================\n");
+    printf("\"%s\"\n", list);
+    res = tiny_string_list_insert(list, NULL, sizeof(list), "911");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_insert(list, NULL, sizeof(list), "911");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_insert(list, NULL, sizeof(list), "23");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_insert(list, NULL, sizeof(list), "5");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_insert(list, NULL, 28, "555");
+    printf("%d:\"%s\"\n", res, list);
+
+
+    printf("find: ===========================================\n");
+    printf("\"%s\"\n", list);
+    res = tiny_string_list_find(list, NULL, "911");
+    printf("%d:%s:\"%s\"\n", res, "911", list);
+    res = tiny_string_list_find(list, NULL, "78");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_find(list, NULL, "9");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_find(list, NULL, "5555");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_find(list, NULL, "11");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_find(list, NULL, "23");
+    printf("%d:\"%s\"\n", res, list);
+
+    printf("remove: ===========================================\n");
+    printf("\"%s\"\n", list);
+    res = tiny_string_list_remove(list, NULL, "911");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_remove(list, NULL, "78");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_remove(list, NULL, "9");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_remove(list, NULL, "555");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_remove(list, NULL, "1");
+    printf("%d:\"%s\"\n", res, list);
+    res = tiny_string_list_remove(list, NULL, "6");
+    printf("%d:\"%s\"\n", res, list);
 
     return 0;
 }
