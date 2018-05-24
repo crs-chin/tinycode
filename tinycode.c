@@ -18,10 +18,10 @@
  * Boston, MA 02111-1307, USA.
  */
 
+#include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 
 #include "tinycode.h"
 
@@ -225,28 +225,34 @@ static int utf_encode_8(void **buf, size_t *size, unsigned int cp)
     return err;
 }
 
+static inline int __big_endian()
+{
+    int i = 1;
+    return ! *(char *)&i;
+}
+
 static void __write_be(void *buf, unsigned short val)
 {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    *(unsigned short *)buf = val;
-#else
-    unsigned char *a = (unsigned char *)buf;
+    if(__big_endian()) {
+        *(unsigned short *)buf = val;
+    } else {
+        unsigned char *a = (unsigned char *)buf;
 
-    *a = val >> 8;
-    *(a + 1) = val & 0x0F;
-#endif
+        *a = val >> 8;
+        *(a + 1) = val & 0x0F;
+    }
 }
 
 static void __write_le(void *buf, unsigned short val)
 {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    unsigned char *a = buf;
+    if(__big_endian()) {
+        unsigned char *a = buf;
 
-    *a = val & 0x0F;
-    *(a + 1) = val >> 8;
-#else
-    *(unsigned short *)buf = val;
-#endif
+        *a = val & 0x0F;
+        *(a + 1) = val >> 8;
+    } else {
+        *(unsigned short *)buf = val;
+    }
 }
 
 static int utf_encode_16(void (*write_short)(void *, unsigned short),
@@ -382,24 +388,23 @@ static int utf_decode_8(void **buf, size_t *size, unsigned int *cp)
 
 static unsigned short __read_be(void *buf)
 {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    return *(unsigned short *)buf;
-#else
+    if(__big_endian())
+        return *(unsigned short *)buf;
+
     unsigned char *a = buf;
 
     return (*a << 8 | *(a + 1));
-#endif
 }
 
 static unsigned short __read_le(void *buf)
 {
-#if __BYTE_ORDER == __BIG_ENDIAN
-    unsigned char *a = buf;
+    if(__big_endian()) {
+        unsigned char *a = buf;
 
-    return (*a | *(a + 1) << 8);
-#else
+        return (*a | *(a + 1) << 8);
+    }
+
     return *(unsigned short *)buf;
-#endif
 }
 
 static int utf_decode_16(unsigned short (*read_short)(void *),
@@ -666,11 +671,11 @@ char *tiny_decode_ip_addr(const unsigned char *pdu, int bitoffset)
     else
         v = (v << shift) | ((pdu[charoffset] >> (8 - shift)) & ((1 << shift) - 1));
 
-#if __BYTE_ORDER == __BIG_ENDIAN
-    asprintf(&buf, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
-#else
-    asprintf(&buf, "%d.%d.%d.%d", p[3], p[2], p[1], p[0]);
-#endif
+    if(__big_endian())
+        asprintf(&buf, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
+    else
+        asprintf(&buf, "%d.%d.%d.%d", p[3], p[2], p[1], p[0]);
+
     return buf;
 }
 
@@ -952,6 +957,203 @@ unsigned char *tiny_decode_bcd_num_cdma(const unsigned char *pdu, int sz, int bi
     return num;
 }
 
+char *tiny_string_trim(char *string, const char *junk, int flag)
+{
+    const char *_junk = " \f\t\n\r\v";
+    char *s, *p, *_e, *e;
+
+    if(! string || ! string[0])
+        return s;
+
+    if(! junk || ! junk[0])
+        junk = _junk;
+
+    if(! (flag & TRIM_IN_PLACE))
+        string = strdup(string);
+
+    s = p = string;
+
+    if(! string || ! (flag & TRIM_ALL))
+        return string;
+
+    while(*p && strchr(junk, *p))
+        p++;
+
+    if(! (flag & TRIM_FRONT)) {
+        s = p;
+    }
+
+    /* last non-junk char */
+    for(e = _e = p; *_e; _e++) {
+        if(! strchr(junk, *_e))
+            e = _e;
+    }
+
+    if(flag & TRIM_MIDDLE) {
+        while(*p && p <= e) {
+            if(! strchr(junk, *p)) {
+                *s++ = *p++;
+                continue;
+            }
+            p++;
+        }
+    } else {
+        while(*p && p <= e)
+            *s++ = *p++;
+    }
+
+    if(! (flag & TRIM_END)) {
+        while(*p)
+            *s++ = *p++;
+    }
+    *s = '\0';
+
+    return string;
+}
+
+char **tiny_string_list_split(const char *list, const char *delim, int *num)
+{
+    const char *_delim = ",", *p, *_p;
+    char **array, **item, *content;
+    unsigned int l, len;
+    int cnt;
+
+    if(! list || ! list[0])
+        return NULL;
+
+    if(! delim || ! delim[0])
+        delim = _delim;
+
+    for(cnt = 0, p = _p = list, len = strlen(delim); _p && *p; p = _p + len) {
+        if(p != (_p = strstr(p, delim)))
+            cnt++;
+    }
+
+    /* reside in a single block with last NULL item */
+    if(! (array = (char **)malloc(strlen(list) + sizeof(char *) * (cnt + 1))))
+        return NULL;
+
+    item = array;
+    content = (char *)(array + cnt + 1);
+    for(p = _p = list; _p && *p; p = _p + len) {
+        if(p != (_p = strstr(p, delim))) {
+            if(_p) {
+                l = _p - p;
+                *item++ = strncpy(content, p, l);
+                content += l;
+                *content++ = '\0';
+            } else {
+                *item++ = strcpy(content, p);
+            }
+        }
+    }
+
+    *item = NULL;
+    if(num)
+        *num = cnt;
+
+    return array;
+}
+
+/*
+ * @size: list capacity, including terminating '\0'
+ */
+int tiny_string_list_insert(char *list, const char *delim, unsigned int size, const char *item)
+{
+    const char *_delim = ",", *p, *_p;
+    unsigned int dlen, len;
+
+    if(! list || ! item || ! item[0])
+        return -1;
+
+    if(! delim || ! delim[0])
+        delim = _delim;
+
+    for(p = _p = list, dlen = strlen(delim); _p && *p; p = _p + dlen) {
+        if(p != (_p = strstr(p, delim))) {
+            if((! _p && ! strcmp(item, p)) ||
+               (_p && (_p - p) == strlen(item) && ! strncmp(item, p, _p - p)))
+                return 0;
+        }
+    }
+
+    len = strlen(list) + strlen(item) + 1;
+    /* list not ending with delim */
+    if(! _p)
+        len += dlen;
+
+    if(len > size)
+        return -1;
+
+    if(! _p)
+        strcat(list, delim);
+    strcat(list, item);
+    return 0;
+}
+
+int tiny_string_list_remove(char *list, const char *delim, const char *item)
+{
+    const char *_delim = ",";
+    unsigned int dlen, len;
+    char *p, *_p;
+
+    if(! list || ! item || ! item[0])
+        return -1;
+
+    if(! delim || ! delim[0])
+        delim = _delim;
+
+    for(p = _p = list, dlen = strlen(delim); _p && *p; p = _p + dlen) {
+        if(p != (_p = strstr(p, delim))) {
+            if(! _p && ! strcmp(item, p)) {
+                while(p > list && ! strncmp(p - dlen, delim, dlen))
+                    p -= dlen;
+
+                *p = '\0';
+                return 0;
+            }
+
+            if(_p && (_p - p) == strlen(item) && ! strncmp(item, p, _p - p)) {
+                while(! strncmp(_p, delim, dlen))
+                    _p += dlen;
+
+                /* remove heading delim if no trailing item */
+                if(! *_p) {
+                    while(p > list && ! strncmp(p - dlen, delim, dlen))
+                        p -= dlen;
+                }
+
+                while(*_p)
+                    *p++ = *_p++;
+                *p = '\0';
+                return 0;
+            }
+        }
+    }
+    return 0;
+}
+
+int tiny_string_list_find(char *list, const char *delim, const char *item)
+{
+    const char *_delim = ",", *p, *_p;
+    unsigned int dlen, len;
+
+    if(! list || ! item || ! item[0])
+        return -1;
+
+    if(! delim || ! delim[0])
+        delim = _delim;
+
+    for(p = _p = list, dlen = strlen(delim); _p && *p; p = _p + dlen) {
+        if(p != (_p = strstr(p, delim))) {
+            if((! _p && ! strcmp(item, p)) ||
+               (_p && (_p - p) == strlen(item) && ! strncmp(item, p, _p - p)))
+                return 0;
+        }
+    }
+
+    return -1;
+}
 
 static __attribute__((unused)) void __build_check(void)
 {

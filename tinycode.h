@@ -84,4 +84,19 @@ extern int tiny_decode_bcd_cdma(unsigned char pdu);
 extern unsigned char *tiny_decode_bcd_num(const unsigned char *pdu, int sz);
 extern unsigned char *tiny_decode_bcd_num_cdma(const unsigned char *pdu, int sz, int bitoffset);
 
+/* string utils */
+#define TRIM_FRONT       1
+#define TRIM_MIDDLE      (1<<1)
+#define TRIM_END         (1<<2)
+#define TRIM_IN_PLACE    (1<<3)
+#define TRIM_ALL         (TRIM_FRONT | TRIM_MIDDLE | TRIM_END)
+
+extern char *tiny_string_trim(char *string, const char *junk, int flag);
+extern char **tiny_string_list_split(const char *list, const char *delim, int *num);
+extern int tiny_string_list_insert(char *list, const char *delim, unsigned int size, const char *item);
+extern int tiny_string_list_remove(char *list, const char *delim, const char *item);
+extern int tiny_string_list_find(char *list, const char *delim, const char *item);
+
+/* utils */
+
 #endif  /* ! __TINYCODE_H */

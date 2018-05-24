@@ -3,7 +3,7 @@ default:all
 all:test
 
 CFLAGS += -O2
-LDFLAGS += -s
+# LDFLAGS += -s
 
 test:test.c tinycode.c
 	@$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
