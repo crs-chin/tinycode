@@ -897,7 +897,7 @@ int tiny_decode_bcd_cdma(unsigned char pdu)
 /* FIXME:modify num according num type */
 unsigned char *tiny_decode_bcd_num(const unsigned char *pdu, int sz)
 {
-    unsigned char *num = (char *)malloc(sz + 1), idx;
+    unsigned char *num = (unsigned char *)malloc(sz + 1), idx;
     int  i;
 
     if(num)  {
@@ -1153,6 +1153,24 @@ int tiny_string_list_find(char *list, const char *delim, const char *item)
     }
 
     return -1;
+}
+
+int tiny_string_list_concat(char *list, const char *delim, unsigned int size, const char *add)
+{
+    char **arr, **p;
+    const char *_delim = ",";
+    int res = 0;
+
+    if(! list || ! add)
+        return -1;
+
+    if((p = arr = tiny_string_list_split(add, delim, NULL))) {
+        while(*p) {
+            if((res = tiny_string_list_insert(list, delim, size, *p++))) break;
+        }
+        free(arr);
+    }
+    return res;
 }
 
 static __attribute__((unused)) void __build_check(void)

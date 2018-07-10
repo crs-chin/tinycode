@@ -75,6 +75,8 @@ int main(int argc, char *argv[])
     char f[] = "HelloWorld";
     char g[] = "  ";
     char list[50] = "1,23,4,5,6,,78,,,9,,";
+    char list_a[100] = "123,456,789,111,222,333,444,55,66,77,88";
+    char list_b[100] = "123,456,789,111,222,333,444,,,11,22,9999,8888,hello,  33";
     char **array;
     int i, cnt, res;
 
@@ -181,6 +183,13 @@ int main(int argc, char *argv[])
     res = tiny_string_list_remove(list, NULL, "6");
     printf("%d:\"%s\"\n", res, list);
 
+
+    printf("concat: ===========================================\n");
+    printf("\"A: %s\"\n", list_a);
+    printf("\"A: %s\"\n", list_b);
+
+    res = tiny_string_list_concat(list_a, NULL, sizeof(list_a), list_b);
+    printf("\"O: %s\" %d\n", list_a, res);
     return 0;
 }
 

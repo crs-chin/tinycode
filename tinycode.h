@@ -92,11 +92,13 @@ extern unsigned char *tiny_decode_bcd_num_cdma(const unsigned char *pdu, int sz,
 #define TRIM_ALL         (TRIM_FRONT | TRIM_MIDDLE | TRIM_END)
 
 extern char *tiny_string_trim(char *string, const char *junk, int flag);
+/* note: space isn't exluded during comparing, trim them before
+   passing them into the functions */
 extern char **tiny_string_list_split(const char *list, const char *delim, int *num);
 extern int tiny_string_list_insert(char *list, const char *delim, unsigned int size, const char *item);
 extern int tiny_string_list_remove(char *list, const char *delim, const char *item);
 extern int tiny_string_list_find(char *list, const char *delim, const char *item);
-
+extern int tiny_string_list_concat(char *list, const char *delim, unsigned int size, const char *add);
 /* utils */
 
 #endif  /* ! __TINYCODE_H */
