@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 
 #include "tinycode.h"
@@ -79,11 +80,169 @@ static const char *gsm_alphabet_ex[128] = {
     [0x60] = "€",
 };
 
+static const char *single_shift_Turkish[] = {
+    [0x14] = "^",
+    [0x28] = "{", [0x29] = "}", [0x2F] = "\\",
+    [0x3C] = "[", [0x3D] = "~", [0x3E] = "]",
+    [0x40] = "|", [0x47] = "Ğ", [0x49] = "İ",
+    [0x53] = "Ş",
+    [0x63] = "ç", [0x67] = "ğ", [0x69] = "ı",
+    [0x73] = "ş"
+};
+
+static const char *locking_shift_Turkish[] = {
+    "@", "£", "$", "¥", "€", "é", "ù", "ı", "ò", "Ç", "\n", "Ğ", "ğ", "\r", "Å", "å",
+    "Δ", "_", "Φ", "Γ", "Λ", "Ω", "Π", "Ψ", "Σ", "Θ", "Ξ", "\x1B", "Ş", "ş", "ß", "É",
+    " ", "!", "\"", "#", "¤", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", 
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?", 
+    "İ", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+    "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "Ä", "Ö", "Ñ", "Ü", "§",
+    "ç", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o",
+    "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "ä", "ö", "ñ", "ü", "à", 
+};
+
+static const char *single_shift_Spanish[] = {
+    [0x09] = "ç",
+    [0x14] = "^",
+    [0x28] = "{", [0x29] = "}", [0x2F] = "\\",
+    [0x3C] = "[", [0x3D] = "~", [0x3E] = "]",
+    [0x40] = "|", [0x41] = "Á", [0x49] = "Í", [0x4F] = "Ó",
+    [0x55] = "Ú",
+    [0x61] = "á", [0x69] = "í", [0x6F] = "ó",
+    [0x75] = "ú",
+};
+
+static const char *single_shift_Portuguese[] = {
+    [0x05] = "ê", [0x09] = "ç", [0x0B] = "Ô", [0x0C] = "ô", [0x0E] = "Á", [0x0F] = "á", 
+    [0x12] = "Φ", [0x13] = "Γ", [0x14] = "^", [0x15] = "Ω", [0x16] = "Π", [0x17] = "Ψ", [0x18] = "Σ", [0x19] = "Θ", [0x1F] = "Ê", 
+    [0x28] = "{", [0x29] = "}", [0x2F] = "\\",
+    [0x3C] = "[", [0x3D] = "~", [0x3E] = "]", 
+    [0x41] = "|", [0x42] = "À", [0x49] = "Í", [0x4F] = "Ó", 
+    [0x55] = "Ú", [0x5B] = "Ã", [0x5C] = "Õ", 
+    [0x61] = "Â", [0x65] = "€", [0x69] = "í", [0x6F] = "ó", 
+    [0x75] = "ú", [0x7B] = "ã", [0x7C] = "õ", [0x7F] = "â", 
+};
+
+static const char *locking_shift_Portuguese[] = {
+ 	"@", "£", "$", "¥", "ê", "é", "ú", "í", "ó", "ç", "\n", "Ô", "ô", "\r", "Á", "á",
+    "Δ", "_", "ª", "Ç", "À", "∞", "^", "\\", "€", "Ó", "|", "\x1B", "Â", "â", "Ê", "É", 
+    " ", "!", "\"", "#", "º", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/",
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?",
+    "Í", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+    "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "Ã", "Õ", "Ú", "Ü", "§",
+    "~", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o",
+    "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "ã", "õ", "`", "ü", "à", 
+};
+#define SHIFT_TABLE(idx,lang)                                           \
+    __SHIFT_TABLE(idx,lang,single_shift_##lang,locking_shift_##lang)
+
+#define SHIFT_TABLE_GSM7BIT(idx,lang)                       \
+    __SHIFT_TABLE(idx,lang,gsm_alphabet_ex,gsm_alphabet)
+
+#define __SHIFT_TABLE(idx,lang,single,locking)  \
+    [idx] = {#lang, single, locking}
+
+struct language_shift_table{
+    char *name;
+    const char **single;
+    const char **locking;
+};
+
+#define LANG_SHIFT_GSM7BIT  0x00
+
+static const struct language_shift_table language_shift_table[255] = {
+    SHIFT_TABLE_GSM7BIT(0x00, GSM7BIT),
+    SHIFT_TABLE(0x01, Turkish),
+    __SHIFT_TABLE(0x02, Spanish, single_shift_Spanish, gsm_alphabet),
+    SHIFT_TABLE(0x03, Portuguese),
+};
+
+#undef SHIFT_TABLE
+#undef SHIFT_TABLE_GSM7BIT
+#undef __SHIFT_TABLE
 
 static const char *mon_tbl[] = {
     "Jan.", "Feb.", "Mar.", "Apr.", "May.", "Jun.", "Jul.", "Aug.", "Sep.", "Oct.", "Nov.", "Dec.",
 };
 
+#ifndef ARRAYSIZE
+ #define ARRAYSIZE(a)  (sizeof(a)/sizeof(a[0]))
+#endif
+
+#ifndef BUILD_FAIL_IF
+ #define BUILD_FAIL_IF(exp) ((void)sizeof(char[1 - 2 * (!!(exp))]))
+#endif
+
+#ifndef _GNU_SOURCE
+#define __INIT_STRING_LEN 100
+
+static int asprintf(char **strp, const char *fmt, ...)
+{
+    va_list ap;
+    char *buf;
+    size_t len = __INIT_STRING_LEN;
+    int res;
+
+    if(! strp || ! fmt || ! (buf = (char *)malloc(len)))
+        return -1;
+
+    va_start(ap, fmt);
+    do {
+        res = vsnprintf(buf, len, fmt, ap);
+
+        if(res >= len) {
+            free(buf);
+
+            if(! (buf = (char *)malloc(len + __INIT_STRING_LEN))) {
+                res = -1;
+                break;
+            }
+
+            len += __INIT_STRING_LEN;
+            va_end(ap);
+            va_start(ap, fmt);
+            continue;
+        }
+    } while(0);
+    va_end(ap);
+
+    *strp = buf;
+    return res;
+}
+
+static int vasprintf(char **strp, const char *fmt, va_list _ap)
+{
+    va_list ap;
+    char *buf;
+    size_t len = __INIT_STRING_LEN * 10;
+    int res;
+
+    if(! strp || ! fmt || ! (buf = (char *)malloc(len)))
+        return -1;
+
+    va_copy(ap, _ap);
+    do {
+        res = vsnprintf(buf, len, fmt, ap);
+        if(res >= len) {
+            free(buf);
+
+            if(! (buf = (char *)malloc(len + __INIT_STRING_LEN))) {
+                res = -1;
+                break;
+            }
+
+            len += __INIT_STRING_LEN;
+            va_end(ap);
+            va_copy(ap, _ap);
+            continue;
+        }
+    } while(0);
+    va_end(ap);
+
+    *strp = buf;
+    return res;
+}
+#endif
 
 int tiny_decode_hex(char c)
 {
@@ -654,7 +813,6 @@ char *tiny_decode_asc7bit_unpacked(const unsigned char *pdu, int septets, int bi
     return buf;
 }
 
-
 char *tiny_decode_ip_addr(const unsigned char *pdu, int bitoffset)
 {
     unsigned int v, charoffset = bitoffset / 8, shift = bitoffset % 8;
@@ -679,11 +837,21 @@ char *tiny_decode_ip_addr(const unsigned char *pdu, int bitoffset)
     return buf;
 }
 
-char *tiny_decode_gsm7bit_packed(const unsigned char *pdu, int septets, int padingbits)
+char *tiny_decode_gsm7bit_packed_ex(const unsigned char *pdu, int septets, int padingbits,
+                                    int single_shift, int locking_shift)
 {
     char *str, *p;
     int esc = 0, c, bitoffset, charoffset, shift;
     int i, sz = septets;
+    struct language_shift_table transtbl = language_shift_table[LANG_SHIFT_GSM7BIT];
+
+    if(single_shift > 0 && single_shift < ARRAYSIZE(language_shift_table)) {
+        transtbl.single = language_shift_table[single_shift].single;
+    }
+
+    if(locking_shift > 0 && locking_shift < ARRAYSIZE(language_shift_table)) {
+        transtbl.locking = language_shift_table[locking_shift].locking;
+    }
 
     str = (char *)malloc(sz + 1);
     if(! str)  {
@@ -717,28 +885,38 @@ char *tiny_decode_gsm7bit_packed(const unsigned char *pdu, int septets, int padi
 
         if(esc)  {
             /* fake a invalid escaped char as a space */
-            if(! gsm_alphabet_ex[c])
+            if(! transtbl.single[c])
                 str[i++] = ' ';
             else  {
-                strcpy(str + i, gsm_alphabet_ex[c]);
-                i += strlen(gsm_alphabet_ex[c]);
+                strcpy(str + i, transtbl.single[c]);
+                i += strlen(transtbl.single[c]);
             }
             esc = 0;
             continue;
         }
 
-        strcpy(str + i, gsm_alphabet[c]);
-        i += strlen(gsm_alphabet[c]);
+        strcpy(str + i, transtbl.locking[c]);
+        i += strlen(transtbl.locking[c]);
     }
 
     str[i] = '\0';
     return str;    
 }
 
-char *tiny_decode_gsm8bit_unpacked(const unsigned char *pdu, int len)
+char *tiny_decode_gsm8bit_unpacked_ex(const unsigned char *pdu, int len,
+                                      int single_shift, int locking_shift)
 {
     char *str, *p;
     int esc, c, i, j, sz = len;
+    struct language_shift_table transtbl = language_shift_table[LANG_SHIFT_GSM7BIT];
+
+    if(single_shift > 0 && single_shift < ARRAYSIZE(language_shift_table)) {
+        transtbl.single = language_shift_table[single_shift].single;
+    }
+
+    if(locking_shift > 0 && locking_shift < ARRAYSIZE(language_shift_table)) {
+        transtbl.locking = language_shift_table[locking_shift].locking;
+    }
 
     str = (char *)malloc(sz + 1);
     if(! str)  {
@@ -766,23 +944,24 @@ char *tiny_decode_gsm8bit_unpacked(const unsigned char *pdu, int len)
 
         if(esc)  {
             /* fake a invalid escaped char as a space */
-            if(! gsm_alphabet_ex[c])
+            if(! transtbl.single[c])
                 str[i++] = ' ';
             else  {
-                strcpy(str + i, gsm_alphabet_ex[c]);
-                i += strlen(gsm_alphabet_ex[c]);
+                strcpy(str + i, transtbl.single[c]);
+                i += strlen(transtbl.single[c]);
             }
             esc = 0;
             continue;
         }
 
-        strcpy(str + i, gsm_alphabet[c]);
-        i += strlen(gsm_alphabet[c]);
+        strcpy(str + i, transtbl.locking[c]);
+        i += strlen(transtbl.locking[c]);
     }
 
     str[i] = '\0';
     return str;
 }
+
 
 char *tiny_decode_ucs2(const char *pdu, char base, int len)
 {

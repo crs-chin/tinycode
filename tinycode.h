@@ -40,14 +40,10 @@
 #define UTF_ERR_SIZE        (-4)
 #define UTF_ERR_NO_SUPPORT  (-5)
 
-
-#ifndef ARRAYSIZE
- #define ARRAYSIZE(a)  (sizeof(a)/sizeof(a[0]))
-#endif
-
-#ifndef BUILD_FAIL_IF
- #define BUILD_FAIL_IF(exp) ((void)sizeof(char[1 - 2 * (!!(exp))]))
-#endif
+#define LANG_SHIFT_GSM7BIT      0x00
+#define LANG_SHIFT_TURKISH      0x01
+#define LANG_SHIFT_SPANISH      0x02
+#define LANG_SHIFT_PORTUGUESE   0x03
 
 
 /* basic */
@@ -72,8 +68,23 @@ extern char *tiny_decode_asc7bit_unpacked(const unsigned char *pdu, int septets,
 
 extern char *tiny_decode_ip_addr(const unsigned char *pdu, int bitoffset);
 
-extern char *tiny_decode_gsm7bit_packed(const unsigned char *pdu, int septets, int padingbits);
-extern char *tiny_decode_gsm8bit_unpacked(const unsigned char *pdu, int len);
+extern char *tiny_decode_gsm7bit_packed_ex(const unsigned char *pdu, int septets, int padingbits,
+                                           int single_shift, int locking_shift);
+extern char *tiny_decode_gsm8bit_unpacked_ex(const unsigned char *pdu, int len,
+                                             int single_shift, int locking_shift);
+
+static char *tiny_decode_gsm7bit_packed(const unsigned char *pdu, int septets, int padingbits)
+{
+    return tiny_decode_gsm7bit_packed_ex(pdu, septets, padingbits,
+                                         LANG_SHIFT_GSM7BIT, LANG_SHIFT_GSM7BIT);
+}
+
+static char *tiny_decode_gsm8bit_unpacked(const unsigned char *pdu, int len)
+{
+    return tiny_decode_gsm8bit_unpacked_ex(pdu, len,
+                                           LANG_SHIFT_GSM7BIT, LANG_SHIFT_GSM7BIT);
+}
+
 
 extern char *tiny_decode_ucs2(const char *pdu, char base, int len);
 extern char *tiny_decode_adn(const unsigned char *pdu, int len);
